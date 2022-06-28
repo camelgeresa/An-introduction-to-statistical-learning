@@ -1,0 +1,74 @@
+set.seed(1)
+library(ISLR2)
+#Validation set approach:
+attach(Default)
+glm.fit=glm(default~income+balance, data=Default, family=binomial, subset=train)
+?sample
+train=sample(nrow(Default),nrow(Default)/2)
+test=Default[-train,]
+pred=predict(glm.fit,test, type='response')
+pred2=rep('No',nrow(test))
+pred2[pred>0.5]='Yes'
+mean(pred2!=test['default'])
+#0.0254 error rate (1st sample)
+#Repeat using a different sample:
+glm.fit=glm(default~income+balance, data=Default, family=binomial, subset=train)
+?sample
+train=sample(nrow(Default),nrow(Default)/2)
+test=Default[-train,]
+pred=predict(glm.fit,test, type='response')
+pred2=rep('No',nrow(test))
+pred2[pred>0.5]='Yes'
+mean(pred2!=test['default'])
+#0.0272 error rate (2nd sample)
+#0.0242 error rate (3rd sample). From these results we can see that the validation error rate can differ depending on the split chosen (i.e which samples go to train and which to validation set)
+glm.fit=glm(default~income+balance+student, data=Default, family=binomial, subset=train)
+pred=predict(glm.fit,test, type='response')
+pred2=rep('No',nrow(test))
+pred2[pred>0.5]='Yes'
+mean(pred2!=test['default'])
+#Error rate remains 0.0242, hence student dummy variable does not lead to decrease in test error rate
+#Calculating the standard error with Bootstrap techniques vs the formulas:
+glm.fit=glm(default~income+balance, data=Default, family=binomial, subset=train)
+summary(glm.fit)
+#Standard error for B0: 0.6008, B1:6.775e^-6, B2:3.18e^-4
+#Function for bootstrap technique:
+boot.fn=function(data,index)
+  return(coef(glm(default~income+balance,data=data, family=binomial, subset=index)))
+boot.fn(Default,1:nrow(Default))
+boot(Default, boot.fn, R=1000)
+#The SE using the Bootstrap method are lower than the ones obtained using the formulae.
+attach(Weekly)
+#For loop which mimics the LOOCV process
+errors=0
+for (i in 1:nrow(Weekly)){
+    glm.fit=glm(Direction~Lag1+Lag2,data=Weekly[-i,], family=binomial)
+    pred=predict(glm.fit, Weekly[i],type='response')
+    if (pred>0.5){
+      pred=1
+    }else {
+      pred=0
+    }
+    if (pred!=Weekly[i,'Direction']){
+      errors = errors+ 1
+    }
+}
+attach(Boston)
+mean(Boston[,'medv'])
+#Finding the standard error of the sample mean:
+sd(Boston[,'medv'])
+sde=sd(Boston[,'medv'])/sqrt(nrow(Boston))
+sde
+#The standard error of the sample mean is 0.41, i.e the sample mean is 0.41 off the true mean of the population
+boot.fn=function(data,index)
+  return(mean(data[index]))
+boot(Boston$medv, boot.fn, R=100)
+#0.46, however I used a small value for R.
+#95% confidence intervals=
+ci=c(22.53-2*0.46,22.53+2*0.46)
+ci
+t.test(Boston$medv)    
+#ci and the confidence intervals from t.test are very similar.    
+    
+      
+  
